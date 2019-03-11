@@ -1,36 +1,36 @@
 ---
-<% if (buildPullRequests) { %>
+<% if (buildPullRequests) { -%>
 resource_types:
 - name: github-pr
   type: docker-image
   source:
     repository: teliaoss/github-pr-resource
-<% } %>
+<% } -%>
 resources:
-<% if (buildPullRequests) { %>
+<% if (buildPullRequests) { -%>
 - name: pull-request
   type: github-pr
   check_every: 1m
   webhook_token: ((github-enterprise.token))
   source:
     access_token: ((github-enterprise.token))
-    repository: <%= repository %>
+    repository: <%= repository -%>
     v3_endpoint: https://github.carmax.com/api/v3
     v4_endpoint: https://github.carmax.com/api/graphql
-<% } %>
+<% } -%>
 - name: source-code
   type: git
   source:
-    uri: <%= repositoryUri %>
+    uri: <%= repositoryUri -%>
     branch: master
     username: ((github-enterprise.user))
     password: ((github-enterprise.token))
-<% if (gitHubVersioning) { %>
+<% if (gitHubVersioning) { -%>
 - name: github-pre-release
   type: github-release
   source:
-    owner: <%= repositoryOwner %>
-    repository: <%= repositoryName %>
+    owner: <%= repositoryOwner -%>
+    repository: <%= repositoryName -%>
     access_token: ((github-enterprise.token))
     github_api_url: https://github.carmax.com/api/v3/
     github_uploads_url: https://github.carmax.com/api/uploads/
@@ -39,16 +39,16 @@ resources:
 - name: github-release
   type: github-release
   source:
-    owner: <%= repositoryOwner %>
-    repository: <%= repositoryName %>
+    owner: <%= repositoryOwner -%>
+    repository: <%= repositoryName -%>
     access_token: ((github-enterprise.token))
     github_api_url: https://github.carmax.com/api/v3/
     github_uploads_url: https://github.carmax.com/api/uploads/
     release: true
     pre_release: false
-<% } %>
+<% } -%>
 jobs:
-<% if (buildPullRequests) { %>
+<% if (buildPullRequests) { -%>
 - name: check-pull-request
   max_in_flight: 5
   build_logs_to_retain: 30
@@ -76,7 +76,7 @@ jobs:
         path: pull-request
         status: failure
         context: build
-<% if (testFolder) { %>
+<% if (testFolder) { -%>
   - task: test
     config:
       platform: linux
@@ -90,7 +90,7 @@ jobs:
       run:
         path: dotnet
         args: ['test', '-v', 'minimal']
-        dir: pull-request/<%= testFolder %>
+        dir: pull-request/<%= testFolder -%>
     on_failure:
       put: pull-request
       params:
@@ -101,8 +101,8 @@ jobs:
     params:
       path: pull-request
       status: success
-<% } %>
-<% } %>
+<% } -%>
+<% } -%>
 - name: build
   max_in_flight: 1
   build_logs_to_retain: 20
@@ -122,15 +122,15 @@ jobs:
       - name: version
       params: {
         GithubCredentials: '((github-enterprise.user)):((github-enterprise.token))',
-        GithubOwner: <%= repositoryOwner %>,
-        GithubRepository: <%= repositoryName %>
+        GithubOwner: <%= repositoryOwner -%>,
+        GithubRepository: <%= repositoryName -%>
       }
       run:
         path: bash
         args:
         - .ci/scripts/generate_version.sh
         dir: source-code
-<% if (testFolder) { %>
+<% if (testFolder) { -%>
   - task: test
     config:
       platform: linux
@@ -144,8 +144,8 @@ jobs:
       run:
         path: dotnet
         args: ['test', '-v', 'minimal']
-        dir: source-code/<%= testFolder %>
-<% } %>
+        dir: source-code/<%= testFolder -%>
+<% } -%>
   - task: publish
     config:
       platform: linux
@@ -172,7 +172,7 @@ jobs:
       commitish: source-code/.git/ref
       globs:
         - artifacts/*.tar.gz
-<% } %>
+<% } -%>
 - name: dev
   max_in_flight: 1
   build_logs_to_retain: 20
@@ -266,11 +266,11 @@ jobs:
         - .ci/scripts/deploy.sh
         - .ci/config/prod.json
         dir: source-code
-<% if (gitHubVersioning) { %>
+<% if (gitHubVersioning) { -%>
   - put: github-release
     params:
       name: github-pre-release/version
       tag: github-pre-release/tag
       body: github-pre-release/body
       commitish: source-code/.git/ref
-<% } %>
+<% } -%>
