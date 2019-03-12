@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# Exit on first error
+set -e
+
+apk add zip --no-cache --no-progress
+
+echo "Authenticating to Azure"
+az login \
+  -u $AzureUser \
+  -p $AzureToken \
+  --tenant $AzureTenant \
+  --service-principal \
+  > /dev/null
+
+# Version=$(cat $VersionPath)
+Config=$(cat $1)
+
+# Handle app service deployment
+AppServices=$(echo $Config | jq -c '.appServices? | .[]?')
+
+for AppService in $AppServices; do
+  ArtifactPath=$(echo $AppService | jq -r '.artifactPath')
+
+  echo "Generating Deployment Zip from $ArtifactPath"
+  mkdir artifacts
+  tar -xzf $ArtifactPath -C artifacts/
+  ( cd artifacts/$ArtifactPath && zip -rq ../../deploy.zip . )
+
+  Targets=$(echo $AppService | jq -c '.targets | .[]?')
+
+  # Deploy code
+  for Target in $Targets; do
+    ResourceGroup=$(echo $Target | jq -r '.resourceGroup')
+    AppServiceName=$(echo $Target | jq -r '.name')
+    Slot=$(echo $Target | jq -r '.slot')
+
+    echo "Deploying $Version to $AppServiceName@$Slot"
+
+    az webapp deployment source config-zip \
+      -g $ResourceGroup \
+      -n $AppServiceName \
+      -s $Slot \
+      --src deploy.zip \
+      -t 60 \
+      > /dev/null
+  done
+
+  # Health check
+  for Target in $Targets; do
+    ResourceGroup=$(echo $Target | jq -r '.resourceGroup')
+    AppServiceName=$(echo $Target | jq -r '.name')
+    Slot=$(echo $Target | jq -r '.slot')
+    HealthCheckPath=$(echo $Target | jq -r '.healthCheckPath')
+
+    Host=`az webapp show -g $ResourceGroup -n $AppServiceName -s $Slot | jq -r '.defaultHostName'`
+    echo "Checking Health of $AppServiceName"
+    curl -sfL -w "%{http_code}\n" -m 60 https://$Host$HealthCheckPath -o /dev/null
+  done
+
+  for Target in $Targets; do
+    ResourceGroup=$(echo $Target | jq -r '.resourceGroup')
+    AppServiceName=$(echo $Target | jq -r '.name')
+    Slot=$(echo $Target | jq -r '.slot')
+
+    if [ "$Slot" != "Production" ]; then
+      echo "Swapping $AppServiceName $Slot to Production"
+      az webapp deployment slot swap \
+        -g $ResourceGroup \
+        -n $AppServiceName \
+        -s $Slot \
+        --target-slot production
+    fi
+  done
+
+done
+
+echo "Deployment Complete"

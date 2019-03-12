@@ -1,0 +1,33 @@
+{
+  "name": "generator-concourse-pipeline",
+  "version": "0.1.0",
+  "description": "Yeoman generator for concourse pipelines",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jarlotee/generator-concourse-pipeline.git"
+  },
+  "keywords": [
+    "yeoman-generator",
+    "concourse",
+    "ci",
+    "pipeline",
+    "pipelines"
+  ],
+  "author": "Jarlotee",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Jarlotee/generator-concourse-pipeline/issues"
+  },
+  "homepage": "https://github.com/Jarlotee/generator-concourse-pipeline#readme",
+  "dependencies": {
+    "chalk": "^2.4.2",
+    "glob": "^7.1.3",
+    "yeoman-generator": "^3.2.0"
+  },
+  "files": [
+    "generators"
+  ]
+}

@@ -14,14 +14,14 @@ resources:
   webhook_token: ((github-enterprise.token))
   source:
     access_token: ((github-enterprise.token))
-    repository: <%= repository -%>
+    repository: <%= repository %>
     v3_endpoint: https://github.carmax.com/api/v3
     v4_endpoint: https://github.carmax.com/api/graphql
 <% } -%>
 - name: source-code
   type: git
   source:
-    uri: <%= repositoryUri -%>
+    uri: <%= repositoryUri %>
     branch: master
     username: ((github-enterprise.user))
     password: ((github-enterprise.token))
@@ -29,8 +29,8 @@ resources:
 - name: github-pre-release
   type: github-release
   source:
-    owner: <%= repositoryOwner -%>
-    repository: <%= repositoryName -%>
+    owner: <%= repositoryOwner %>
+    repository: <%= repositoryName %>
     access_token: ((github-enterprise.token))
     github_api_url: https://github.carmax.com/api/v3/
     github_uploads_url: https://github.carmax.com/api/uploads/
@@ -39,8 +39,8 @@ resources:
 - name: github-release
   type: github-release
   source:
-    owner: <%= repositoryOwner -%>
-    repository: <%= repositoryName -%>
+    owner: <%= repositoryOwner %>
+    repository: <%= repositoryName %>
     access_token: ((github-enterprise.token))
     github_api_url: https://github.carmax.com/api/v3/
     github_uploads_url: https://github.carmax.com/api/uploads/
@@ -90,7 +90,7 @@ jobs:
       run:
         path: dotnet
         args: ['test', '-v', 'minimal']
-        dir: pull-request/<%= testFolder -%>
+        dir: pull-request/<%= testFolder %>
     on_failure:
       put: pull-request
       params:
@@ -115,15 +115,15 @@ jobs:
       image_resource:
         type: docker-image
         source:
-          repository: alpine
+          repository: bash
       inputs:
       - name: source-code
       outputs:
       - name: version
       params: {
         GithubCredentials: '((github-enterprise.user)):((github-enterprise.token))',
-        GithubOwner: <%= repositoryOwner -%>,
-        GithubRepository: <%= repositoryName -%>
+        GithubOwner: <%= repositoryOwner %>,
+        GithubRepository: <%= repositoryName %>
       }
       run:
         path: bash
@@ -144,7 +144,7 @@ jobs:
       run:
         path: dotnet
         args: ['test', '-v', 'minimal']
-        dir: source-code/<%= testFolder -%>
+        dir: source-code/<%= testFolder %>
 <% } -%>
   - task: publish
     config:
@@ -172,7 +172,6 @@ jobs:
       commitish: source-code/.git/ref
       globs:
         - artifacts/*.tar.gz
-<% } -%>
 - name: dev
   max_in_flight: 1
   build_logs_to_retain: 20
@@ -193,9 +192,9 @@ jobs:
       - name: source-code
       - name: github-pre-release
       params:
-        AzureUser: ((finance-automation-dev.user))
-        AzureToken: ((finance-automation-dev.token))
-        AzureTenant: ((finance-automation-dev.tenant))
+        AzureUser: ((automation-dev.user))
+        AzureToken: ((automation-dev.token))
+        AzureTenant: ((automation-dev.tenant))
         VersionPath: ../github-pre-release/tag
         ArtifactPath: ../github-pre-release/artifacts.tar.gz
       run:
@@ -224,9 +223,9 @@ jobs:
       - name: source-code
       - name: github-pre-release
       params:
-        AzureUser: ((finance-automation-qa.user))
-        AzureToken: ((finance-automation-qa.token))
-        AzureTenant: ((finance-automation-qa.tenant))
+        AzureUser: ((automation-qa.user))
+        AzureToken: ((automation-qa.token))
+        AzureTenant: ((automation-qa.tenant))
         VersionPath: ../github-pre-release/tag
         ArtifactPath: ../github-pre-release/artifacts.tar.gz
       run:
@@ -255,9 +254,9 @@ jobs:
       - name: source-code
       - name: github-pre-release
       params:
-        AzureUser: ((finance-automation-prod.user))
-        AzureToken: ((finance-automation-prod.token))
-        AzureTenant: ((finance-automation-prod.tenant))
+        AzureUser: ((automation-prod.user))
+        AzureToken: ((automation-prod.token))
+        AzureTenant: ((automation-prod.tenant))
         VersionPath: ../github-pre-release/tag
         ArtifactPath: ../github-pre-release/artifacts.tar.gz
       run:

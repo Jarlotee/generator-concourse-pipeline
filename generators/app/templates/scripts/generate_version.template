@@ -1,0 +1,125 @@
+#!/bin/bash
+
+# dependencies
+apk add bash git curl jq openssh-client --no-cache --no-progress
+
+PullRequestRegex="Merge pull request #([0-9]+) from *"
+LastReleaseTagRegex="([0-9]+).([0-9]+).([0-9]+)"
+HotfixBranchRegex="hotfix/([0-9]+).([0-9]+).([0-9]+).([0-9]+)"
+RevisionRange="HEAD"
+Major=0
+Minor=0
+Patch=0
+PullRequestHistoryItems=()
+Branch=${Branch:-'master'}
+GithubOwner=${GithubOwner:-'CarMax'}
+
+echo `date '+%Y-%m-%d %H:%M:%S'` >> generate_version.log
+echo "==================================== Script Start ====================================" >> generate_version.log
+
+git checkout "$Branch"
+
+CurrentBranch=`git rev-parse --abbrev-ref HEAD`
+CurrentCommit=`git rev-parse HEAD`
+
+echo "Current Branch: $CurrentBranch at $CurrentCommit"
+echo "Current Branch: $CurrentBranch at $CurrentCommit" >> generate_version.log
+
+LastRelease=`curl -f -s -u $GithubCredentials https://github.carmax.com/api/v3/repos/$GithubOwner/$GithubRepository/releases/latest 2> /dev/null`
+
+if [ -n "$LastRelease" ]; then
+  LastReleaseTag=`echo $LastRelease | jq -r '.tag_name'`
+fi
+
+if [ -n "$LastReleaseTag" ]; then
+    echo "Last Tag: $LastReleaseTag" >> generate_version.log
+
+    LastReleaseTagCommit=`git rev-list -n 1 $LastReleaseTag`
+    echo "Version $LastReleaseTag points to $LastReleaseTagCommit" >> generate_version.log
+
+    RevisionRange="$LastReleaseTagCommit..HEAD"
+
+    if [[ "$LastReleaseTag" =~ $LastReleaseTagRegex ]]; then
+        Major="${BASH_REMATCH[1]}"
+        Minor="${BASH_REMATCH[2]}"
+        Patch="${BASH_REMATCH[3]}"
+    else
+        echo "An error occured trying to parse the last tag" >> generate_version.log
+        exit 1
+    fi
+else
+  echo "No starting tag found." >> generate_version.log
+fi
+
+if [ "$CurrentBranch" = "master" ]; then
+    # Parse git log into an array of lines
+    IFS=$'\n' CommitMessages=(`git log $RevisionRange --reverse --pretty=%s --grep "Merge pull request #*"`)
+
+    for CommitMessage in "${CommitMessages[@]}"; do
+        if [[ "$CommitMessage" =~ $PullRequestRegex ]]; then
+            PullRequestNumber="${BASH_REMATCH[1]}"
+            echo "Fetching Pull Request: $PullRequestNumber" >> generate_version.log
+
+            CurlResponse=`curl -s -u $GithubCredentials https://github.carmax.com/api/v3/repos/$GithubOwner/$GithubRepository/issues/$PullRequestNumber`
+
+            # Push Title/Body
+            Title=`echo $CurlResponse | jq -r '.title'`
+            Body=`echo $CurlResponse | jq -r '.body'`
+            PullRequestHistoryItems+=(`printf '### %s\r\n%s\r\n\r\n' "$Title" "$Body"`)
+
+            # Handle tags
+            HasMajorTag=`echo $CurlResponse | jq '.labels[] | select(.name == "major-release") | .id'`
+            HasMinorTag=`echo $CurlResponse | jq '.labels[] | select(.name == "minor-release") | .id'`
+            if [ -n "$HasMajorTag" ]; then
+                echo " - Found Major Tag on $PullRequestNumber" >> generate_version.log
+                Major=$((Major + 1))
+                Minor=0
+                Patch=0
+            elif [ -n "$HasMinorTag" ]; then
+                echo " - Found Minor Tag on $PullRequestNumber" >> generate_version.log
+                Minor=$((Minor + 1))
+                Patch=0
+            else
+                echo " - No Version Tags Found, Incrementing Patch" >> generate_version.log
+                Patch=$((Patch + 1))
+            fi
+        fi
+    done
+else
+    # Parse git log into an array of lines
+    IFS=$'\n' CommitMessages=(`git log master..$CurrentBranch --reverse --pretty=%s`)
+
+    for CommitMessage in "${CommitMessages[@]}"; do
+        echo "Branch Commit Message: $CommitMessage" >> generate_version.log
+        PullRequestHistoryItems+=(`printf '%s\r\n\r\n}' "$CommitMessage"`)
+    done
+
+    if [[ "$CurrentBranch" =~ $HotfixBranchRegex ]]; then
+        Major="${BASH_REMATCH[1]}"
+        Minor="${BASH_REMATCH[2]}"
+        Patch="${BASH_REMATCH[3]}"
+        Hotfix="${BASH_REMATCH[4]}"
+    else
+        echo "Cannot target a branch that is niether the master or hotfix branch" >> generate_version.log
+        exit 1
+    fi
+fi
+
+if [ -n "$Hotfix" ]; then
+    Version="$Major.$Minor.$Patch.$Hotfix$PostPend"
+else
+    Version="$Major.$Minor.$Patch$PostPend"
+fi
+
+PullRequestHistory="${PullRequestHistoryItems[*]}"
+
+echo "$Version" > ../version/name
+echo "$PullRequestHistory" > ../version/body
+echo "$Version" > ../version/number
+echo "$Version"
+
+echo "===================================== Script End =====================================" >> generate_version.log
+echo `date '+%Y-%m-%d %H:%M:%S'` >> generate_version.log
+
+# Debug
+# cat generate_version.log

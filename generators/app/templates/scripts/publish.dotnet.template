@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# Exit on first error
+set -e
+
+# Parameter Overrides
+OutputPath="${OutputPath:-../artifacts}"
+Configuration="${Configuration:-Release}"
+Version=`cat ../version/number`
+
+echo "Restoring Dependencies"
+dotnet restore -v minimal
+
+for project_dir in src/*/; do
+    project_dir=${project_dir%*/} # remove trailing slash
+    project=${project_dir#src/} # remove prepend src/
+    echo "Publishing $project version $Version with configuration $Configuration"
+    dotnet publish $project_dir -c Release -o ./out -p:Version=$Version -v minimal
+    mkdir -p ./out/$project/
+    cp -ar $project_dir/out/. ./out/$project/
+done
+
+echo "Gzipping artifacts"
+tar -cvzf $OutputPath/artifacts.tar.gz -C ./out/ .
+
+echo "Publishing complete"

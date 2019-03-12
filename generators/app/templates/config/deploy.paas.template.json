@@ -1,0 +1,21 @@
+{
+  "appServices": [
+    {
+      "artifactPath": "/",
+      "targets": [
+        {
+          "resourceGroup": "[TODO]",
+          "name": "[TODO]",
+          "slot": "staging",
+          "healthCheckPath": "/"
+        },
+        {
+          "resourceGroup": "[TODO]",
+          "name": "[TODO]",
+          "slot": "staging",
+          "healthCheckPath": "/"
+        }
+      ]
+    }
+  ]
+}
