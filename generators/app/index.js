@@ -115,7 +115,7 @@ module.exports = class extends Generator {
   }
 
   writing() {
-    if (this.answers.deploymentType.indexOf("app-service") > -1) {
+    if (this.answers.deploymentType.indexOf("paas") > -1) {
       this.fs.copy(
         this.templatePath("config/deploy.paas.template"),
         this.destinationPath(".ci/config/dev.json")
@@ -127,6 +127,10 @@ module.exports = class extends Generator {
       this.fs.copy(
         this.templatePath("config/deploy.paas.template"),
         this.destinationPath(".ci/config/prod.json")
+      );
+      this.fs.copy(
+        this.templatePath("scripts/deploy.paas.template"),
+        this.destinationPath(".ci/scripts/deploy.sh")
       );
     }
 
@@ -149,5 +153,22 @@ module.exports = class extends Generator {
         this.piplineTemplateValues
       );
     }
+  }
+
+  end() {
+    this.log(chalk.blue.bold("Pipeline generation complete\n"));
+    this.log("Next Steps:");
+
+    if (this.answers.deploymentType.indexOf("paas") > -1) {
+      this.log(" * update .ci/config based on your paas resource setup");
+    }
+
+    this.log(" * update your readme.md with pipeline information");
+    this.log(chalk.gray(`
+      ## Update Deployment Pipeline
+      1) Make modifications to .ci/deployment.yaml
+      2) \`fly -t [team-name] set-pipeline -p ${this.answers.name} -c .ci/pipeline.yaml\`
+      3) Commit and Push your changes to github
+    `));
   }
 };
