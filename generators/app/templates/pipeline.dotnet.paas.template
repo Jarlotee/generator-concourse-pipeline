@@ -242,7 +242,6 @@ jobs:
     passed: [qa]
   - get: github-pre-release
     passed: [qa]
-    trigger: true
   - task: deploy
     config:
       platform: linux
