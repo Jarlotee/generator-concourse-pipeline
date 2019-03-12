@@ -13,7 +13,7 @@ az login \
   --service-principal \
   > /dev/null
 
-# Version=$(cat $VersionPath)
+Version=$(cat $VersionPath)
 Config=$(cat $1)
 
 # Handle app service deployment
