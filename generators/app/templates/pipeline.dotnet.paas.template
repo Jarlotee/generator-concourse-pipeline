@@ -239,9 +239,9 @@ jobs:
   build_logs_to_retain: 20
   plan:
   - get: source-code
-    passed: [prod]
+    passed: [qa]
   - get: github-pre-release
-    passed: [prod]
+    passed: [qa]
     trigger: true
   - task: deploy
     config:
