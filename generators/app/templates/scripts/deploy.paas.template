@@ -20,12 +20,12 @@ Config=$(cat $1)
 AppServices=$(echo $Config | jq -c '.appServices? | .[]?')
 
 for AppService in $AppServices; do
-  ArtifactPath=$(echo $AppService | jq -r '.artifactPath')
+  Name=$(echo $AppService | jq -r '.artifactPath')
 
-  echo "Generating Deployment Zip from $ArtifactPath"
+  echo "Generating Deployment Zip from $Name"
   mkdir artifacts
   tar -xzf $ArtifactPath -C artifacts/
-  ( cd artifacts/$ArtifactPath && zip -rq ../../deploy.zip . )
+  ( cd artifacts/$Name && zip -rq ../../deploy.zip . )
 
   Targets=$(echo $AppService | jq -c '.targets | .[]?')
 
@@ -35,7 +35,7 @@ for AppService in $AppServices; do
     AppServiceName=$(echo $Target | jq -r '.name')
     Slot=$(echo $Target | jq -r '.slot')
 
-    echo "Deploying $Version to $AppServiceName@$Slot"
+    echo "Deploying $Name@$Version to $AppServiceName@$Slot"
 
     az webapp deployment source config-zip \
       -g $ResourceGroup \
