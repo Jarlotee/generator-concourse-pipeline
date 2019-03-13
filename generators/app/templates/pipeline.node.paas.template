@@ -1,0 +1,274 @@
+---
+<% if (buildPullRequests) { -%>
+resource_types:
+- name: github-pr
+  type: docker-image
+  source:
+    repository: teliaoss/github-pr-resource
+<% } -%>
+resources:
+<% if (buildPullRequests) { -%>
+- name: pull-request
+  type: github-pr
+  check_every: 1m
+  webhook_token: ((github-enterprise.token))
+  source:
+    access_token: ((github-enterprise.token))
+    repository: <%= repository %>
+    v3_endpoint: https://github.carmax.com/api/v3
+    v4_endpoint: https://github.carmax.com/api/graphql
+<% } -%>
+- name: source-code
+  type: git
+  source:
+    uri: <%= repositoryUri %>
+    branch: master
+    username: ((github-enterprise.user))
+    password: ((github-enterprise.token))
+<% if (gitHubVersioning) { -%>
+- name: github-pre-release
+  type: github-release
+  source:
+    owner: <%= repositoryOwner %>
+    repository: <%= repositoryName %>
+    access_token: ((github-enterprise.token))
+    github_api_url: https://github.carmax.com/api/v3/
+    github_uploads_url: https://github.carmax.com/api/uploads/
+    release: false
+    pre_release: true
+- name: github-release
+  type: github-release
+  source:
+    owner: <%= repositoryOwner %>
+    repository: <%= repositoryName %>
+    access_token: ((github-enterprise.token))
+    github_api_url: https://github.carmax.com/api/v3/
+    github_uploads_url: https://github.carmax.com/api/uploads/
+    release: true
+    pre_release: false
+<% } -%>
+jobs:
+<% if (buildPullRequests) { -%>
+- name: check-pull-request
+  max_in_flight: 5
+  build_logs_to_retain: 30
+  plan:
+  - get: pull-request
+    trigger: true
+    version: every
+  - task: build
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: node
+          tag: lts-alpine
+      inputs:
+      - name: pull-request
+      run:
+        path: npm
+        args: ['run', 'build', '--silent']
+        dir: pull-request
+    on_failure:
+      put: pull-request
+      params:
+        path: pull-request
+        status: failure
+        context: build
+<% if (runTests) { -%>
+  - task: test
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: node
+          tag: lts-alpine
+      inputs:
+      - name: pull-request
+      run:
+        path: npm
+        args: ['test', '--silent']
+        dir: pull-request
+    on_failure:
+      put: pull-request
+      params:
+        path: pull-request
+        status: failure
+        context: unit-tests
+  - put: pull-request
+    params:
+      path: pull-request
+      status: success
+<% } -%>
+<% } -%>
+- name: build
+  max_in_flight: 1
+  build_logs_to_retain: 20
+  plan:
+  - get: source-code
+    trigger: true
+  - task: generate-version
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: bash
+      inputs:
+      - name: source-code
+      outputs:
+      - name: version
+      params: {
+        GithubCredentials: '((github-enterprise.user)):((github-enterprise.token))',
+        GithubOwner: <%= repositoryOwner %>,
+        GithubRepository: <%= repositoryName %>
+      }
+      run:
+        path: bash
+        args:
+        - .ci/scripts/generate_version.sh
+        dir: source-code
+<% if (runTests) { -%>
+  - task: test
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: microsoft/dotnet
+          tag: 2.2-sdk-alpine
+      inputs:
+      - name: source-code
+      run:
+        path: dotnet
+        args: ['test', '-v', 'minimal']
+        dir: source-code/<%= testFolder %>
+<% } -%>
+  - task: publish
+    config:
+      platform: linux
+      image_resource:
+          type: docker-image
+          source:
+            repository: npde
+            tag: lts-alpine
+      inputs:
+        - name: source-code
+        - name: version
+      outputs:
+        - name: artifacts
+      run:
+        path: sh
+        args:
+        - .ci/scripts/publish.sh
+        dir: source-code
+  - put: github-pre-release
+    params:
+      name: version/name
+      tag: version/number
+      body: version/body
+      commitish: source-code/.git/ref
+      globs:
+        - artifacts/*.tar.gz
+- name: dev
+  max_in_flight: 1
+  build_logs_to_retain: 20
+  plan:
+  - get: source-code
+    passed: [build]
+  - get: github-pre-release
+    passed: [build]
+    trigger: true
+  - task: deploy
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: microsoft/azure-cli
+      inputs:
+      - name: source-code
+      - name: github-pre-release
+      params:
+        AzureUser: ((automation-dev.user))
+        AzureToken: ((automation-dev.token))
+        AzureTenant: ((automation-dev.tenant))
+        VersionPath: ../github-pre-release/tag
+        ArtifactPath: ../github-pre-release/artifacts.tar.gz
+      run:
+        path: bash
+        args:
+        - .ci/scripts/deploy.sh
+        - .ci/config/dev.json
+        dir: source-code
+- name: qa
+  max_in_flight: 1
+  build_logs_to_retain: 20
+  plan:
+  - get: source-code
+    passed: [dev]
+  - get: github-pre-release
+    passed: [dev]
+    trigger: true
+  - task: deploy
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: microsoft/azure-cli
+      inputs:
+      - name: source-code
+      - name: github-pre-release
+      params:
+        AzureUser: ((automation-qa.user))
+        AzureToken: ((automation-qa.token))
+        AzureTenant: ((automation-qa.tenant))
+        VersionPath: ../github-pre-release/tag
+        ArtifactPath: ../github-pre-release/artifacts.tar.gz
+      run:
+        path: bash
+        args:
+        - .ci/scripts/deploy.sh
+        - .ci/config/qa.json
+        dir: source-code
+- name: prod
+  max_in_flight: 1
+  build_logs_to_retain: 20
+  plan:
+  - get: source-code
+    passed: [qa]
+  - get: github-pre-release
+    passed: [qa]
+  - task: deploy
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: microsoft/azure-cli
+      inputs:
+      - name: source-code
+      - name: github-pre-release
+      params:
+        AzureUser: ((automation-prod.user))
+        AzureToken: ((automation-prod.token))
+        AzureTenant: ((automation-prod.tenant))
+        VersionPath: ../github-pre-release/tag
+        ArtifactPath: ../github-pre-release/artifacts.tar.gz
+      run:
+        path: bash
+        args:
+        - .ci/scripts/deploy.sh
+        - .ci/config/prod.json
+        dir: source-code
+<% if (gitHubVersioning) { -%>
+  - put: github-release
+    params:
+      name: github-pre-release/version
+      tag: github-pre-release/tag
+      body: github-pre-release/body
+      commitish: source-code/.git/ref
+<% } -%>

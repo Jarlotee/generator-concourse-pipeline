@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# Exit on first error
+set -e
+
+# Parameter Overrides
+OutputPath="${OutputPath:-../artifacts}"
+Version=`cat ../version/number`
+
+echo "Restoring dependencies"
+npm install
+
+echo "Building static assets"
+npm run build
+
+echo "Cleaning-up dev dependencies"
+rm -rf node_modules
+npm install --production
+
+echo "Publishing project"
+mkdir -p ./out/
+cp -ar /. ./out/
+
+echo "Gzipping artifacts"
+tar -cvzf $OutputPath/artifacts.tar.gz -C ./out/ .
+
+echo "Publishing complete"

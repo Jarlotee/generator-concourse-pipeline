@@ -107,6 +107,7 @@ module.exports = class extends Generator {
       buildPullRequests: this.answers.buildPullRequests,
       gitHubVersioning: this.answers.gitHubVersioning,
       testFolder: this.testFolder,
+      runTests: this.answers.runTests,
       repository: `${repositoryOwner}/${repositoryName}`,
       repositoryOwner,
       repositoryName,
