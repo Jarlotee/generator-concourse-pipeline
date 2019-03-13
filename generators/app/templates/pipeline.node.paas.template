@@ -97,11 +97,11 @@ jobs:
         path: pull-request
         status: failure
         context: unit-tests
+<% } -%>
   - put: pull-request
     params:
       path: pull-request
       status: success
-<% } -%>
 <% } -%>
 - name: build
   max_in_flight: 1
