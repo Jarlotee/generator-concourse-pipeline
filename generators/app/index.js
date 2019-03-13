@@ -154,6 +154,19 @@ module.exports = class extends Generator {
         this.piplineTemplateValues
       );
     }
+
+    if (this.answers.deploymentType === constants.DeploymentType.NodePaas) {
+      this.fs.copy(
+        this.templatePath("scripts/publish.node.template"),
+        this.destinationPath(".ci/scripts/publish.sh")
+      );
+
+      this.fs.copyTpl(
+        this.templatePath("pipeline.node.paas.template"),
+        this.destinationPath(".ci/pipeline.yaml"),
+        this.piplineTemplateValues
+      );
+    }
   }
 
   end() {
