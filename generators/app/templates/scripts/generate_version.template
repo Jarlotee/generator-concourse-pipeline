@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # dependencies
-apk add bash git curl jq openssh-client --no-cache --no-progress
+apk add git curl jq --no-cache --no-progress
 
 PullRequestRegex="Merge pull request #([0-9]+) from *"
 LastReleaseTagRegex="([0-9]+).([0-9]+).([0-9]+)"
