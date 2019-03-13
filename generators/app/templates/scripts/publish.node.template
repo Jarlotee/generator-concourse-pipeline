@@ -8,20 +8,20 @@ OutputPath="${OutputPath:-../artifacts}"
 Version=`cat ../version/number`
 
 echo "Restoring dependencies"
-npm install
+npm install --silent
 
 echo "Building static assets"
-npm run build
+npm run build --silent
 
 echo "Cleaning-up dev dependencies"
 rm -rf node_modules
-npm install --production
+npm install --production --silent
 
 echo "Publishing project"
-mkdir -p ./out/
-cp -ar /. ./out/
+mkdir -p ../out/
+cp -ar ./ ../out/
 
 echo "Gzipping artifacts"
-tar -cvzf $OutputPath/artifacts.tar.gz -C ./out/ .
+tar -czf $OutputPath/artifacts.tar.gz -C ../out/ .
 
 echo "Publishing complete"
