@@ -1,0 +1,14 @@
+language: node_js
+node_js:
+- lts/*
+script: true
+deploy:
+  provider: npm
+  email: jaredlotti@gmail.com
+  api_key:
+    secure: TRVbPmSdgZkyrWBXK9jhKB0vRc7qpjo/uJFYQaJVu6V0Dd3/g6kaMKd1NsevXOtvaY/MyhMqy0HtArHIsUb7wXLy48PuP51LhZDd6q3LS51hXrfhCo54DWIdk+gLUL/F+Y7vbl/q+brO82Tr1Zhi5D7VKaUo0UuD5GMwypaKX852n4cHOIwTOUnC2S9nuja3WlpxbRllWVis3XQ/7TkiaeETRhYaPKff+2IWNDHfOFbLr4yeVWRWXNCTEE4TgJYoy2DWEfQPubUp5x2uF/7qCWM6XGM/pkWla6U7v0uIJNwmudWZOc3umsKwr7ir5mG8KhK8PJLFdAj9HP4+hEUQznSfVAjmNKUSl314YT+p7WXo9FqrxhkZsHqJ7oa42Xta6UbU1gmjk5KAINg9rLqWaBbkdnoZL3t/10QqLIT2btZxoXF5mCUF7fgUdiYu4Lo3VNtHzqRO4AKGkp0tZzVuzYN7Q5gPa4DJa/5aUa48cihX67nufLn6xz0Onpn5TY8Nole/TLmbNMXUaBDlecj/r+OH0aoLYhBOUP8g/BtzAkqZ8BkVFnZ1PUKf8IAc/Zd9KHke2KbDPo+Na+ZURXHn9aCHSEyyggrkDT2GggqkMZtJi4yEwByJn0jgZd1jyAUd5zm5GGNvKm89P/wzDkbYbp9tsPzqw0CTqtvSzCu5BAc=
+  on:
+    tags: true
+    repo: Jarlotee/generator-concourse-pipeline
+    branch: master
+
