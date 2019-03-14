@@ -1,4 +1,4 @@
-## Node Project Generator
+## Concourse Pipeline Generator
 [![Build Status](https://travis-ci.org/Jarlotee/generator-concourse-pipeline.svg?branch=master)](https://travis-ci.org/Jarlotee/generator-concourse-pipeline)
 ![Dependency Status](https://david-dm.org/Jarlotee/generator-concourse-pipeline.svg)
 
