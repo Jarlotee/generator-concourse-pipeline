@@ -25,9 +25,9 @@ for AppService in $AppServices; do
   echo "Generating Deployment Zip from $Name"
   mkdir artifacts
   if tar -ztf "$ArtifactPath" | head -1 | grep -q "package/"; then
-    tar -xzf $ArtifactPath --strip 1 -C artifacts/
+    tar -xzmf $ArtifactPath --strip 1 -C artifacts/
   else
-    tar -xzf $ArtifactPath -C artifacts/
+    tar -xzmf $ArtifactPath -C artifacts/
   fi
 
   if [ -n "$Name" ]; then
