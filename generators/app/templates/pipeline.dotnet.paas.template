@@ -271,4 +271,6 @@ jobs:
       tag: github-pre-release/tag
       body: github-pre-release/body
       commitish: source-code/.git/ref
+      globs:
+        - github-pre-release/*.tar.gz
 <% } -%>
